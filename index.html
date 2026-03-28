@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>GTR Simulator PRO</title>
+<title>GTR Rev Simulator (No Files)</title>
 <style>
 body {
-  background: black;
+  background: #000;
   color: white;
   font-family: Arial;
   text-align: center;
+  padding-top: 40px;
 }
 
 .bar {
@@ -32,7 +33,7 @@ body {
 </head>
 <body>
 
-<h1>🚗 GTR Simulator PRO</h1>
+<h1>🚗 GTR Rev Simulator</h1>
 <p>SPACE throttle | Q down | E up | N neutral</p>
 
 <div class="bar"><div id="rpmFill" class="fill"></div></div>
@@ -41,58 +42,55 @@ body {
 <div>Speed: <span id="speedText">0</span></div>
 <div class="gear" id="gearText">N</div>
 
-<!-- SOUND LAYERS -->
-<audio id="idle" loop src="sounds/idle.mp3"></audio>
-<audio id="low" loop src="sounds/low.mp3"></audio>
-<audio id="mid" loop src="sounds/mid.mp3"></audio>
-<audio id="high" loop src="sounds/high.mp3"></audio>
-
-<audio id="turbo" src="sounds/turbo.mp3"></audio>
-<audio id="blowoff" src="sounds/blowoff.mp3"></audio>
-
 <script>
 let rpm = 800;
 let speed = 0;
 let gear = 0;
 let throttle = false;
-let started = false;
 
 const maxRPM = 9000;
 const gearRatios = [0,2.8,2.0,1.5,1.2,1.0,0.8];
 
-const idle = document.getElementById("idle");
-const low = document.getElementById("low");
-const mid = document.getElementById("mid");
-const high = document.getElementById("high");
-const turbo = document.getElementById("turbo");
-const blowoff = document.getElementById("blowoff");
+// 🔊 AUDIO ENGINE (no files)
+let ctx, osc, gain, filter;
 
 function startAudio() {
-  if (started) return;
-  started = true;
+  if (ctx) return;
 
-  [idle, low, mid, high].forEach(a => {
-    a.volume = 0;
-    a.play();
-  });
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+  osc = ctx.createOscillator();
+  gain = ctx.createGain();
+  filter = ctx.createBiquadFilter();
+
+  osc.type = "sawtooth"; // aggressive engine tone
+  filter.type = "lowpass";
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+
+  gain.gain.value = 0;
+
+  osc.start();
 }
 
-// SOUND MIXING SYSTEM
+// SOUND UPDATE
 function updateSound() {
+  if (!ctx) return;
+
   let t = rpm / maxRPM;
 
-  idle.volume = Math.max(0, 1 - t * 3);
-  low.volume  = Math.max(0, 1 - Math.abs(t - 0.3) * 4);
-  mid.volume  = Math.max(0, 1 - Math.abs(t - 0.6) * 4);
-  high.volume = Math.max(0, (t - 0.7) * 3);
+  // Engine pitch
+  let freq = 50 + t * 300 + gear * 20;
+  osc.frequency.setTargetAtTime(freq, ctx.currentTime, 0.1);
 
-  // Turbo effect
-  if (throttle && rpm > 3000) {
-    turbo.volume = Math.min(1, turbo.volume + 0.05);
-    turbo.play();
-  } else {
-    turbo.volume = 0;
-  }
+  // Volume (throttle)
+  let volume = throttle ? 0.3 + t * 0.4 : 0.1;
+  gain.gain.setTargetAtTime(volume, ctx.currentTime, 0.1);
+
+  // Filter (makes it sound deeper at low RPM)
+  filter.frequency.setTargetAtTime(500 + t * 3000, ctx.currentTime, 0.1);
 }
 
 // GAME LOOP
@@ -109,7 +107,7 @@ function update() {
 
   // Rev limiter bounce
   if (rpm > maxRPM) {
-    rpm = maxRPM - Math.random() * 500;
+    rpm = maxRPM - Math.random() * 400;
   }
 
   if (rpm < 800) rpm = 800;
@@ -132,25 +130,13 @@ document.addEventListener("keydown", e => {
   startAudio();
 
   if (e.code === "Space") throttle = true;
-
-  if (e.key === "e" && gear < 6) {
-    gear++;
-    blowoff.play();
-  }
-
-  if (e.key === "q" && gear > 0) {
-    gear--;
-    blowoff.play();
-  }
-
+  if (e.key === "e" && gear < 6) gear++;
+  if (e.key === "q" && gear > 0) gear--;
   if (e.key === "n") gear = 0;
 });
 
 document.addEventListener("keyup", e => {
-  if (e.code === "Space") {
-    throttle = false;
-    blowoff.play();
-  }
+  if (e.code === "Space") throttle = false;
 });
 </script>
 
