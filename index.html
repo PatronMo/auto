@@ -1,123 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Car Revving Game</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
-      text-align: center;
-      padding-top: 50px;
-    }
+<meta charset="UTF-8">
+<title>GTR Rev Simulator</title>
+<style>
+  body {
+    background: #0b0b0b;
+    color: #fff;
+    font-family: Arial;
+    text-align: center;
+    padding-top: 40px;
+  }
 
-    h1 {
-      color: #ff3c3c;
-    }
+  h1 {
+    color: #00c3ff;
+  }
 
-    #rpm-bar {
-      width: 300px;
-      height: 30px;
-      border: 2px solid white;
-      margin: 20px auto;
-      background: #333;
-      position: relative;
-    }
+  .dash {
+    margin: 20px auto;
+    width: 320px;
+  }
 
-    #rpm-fill {
-      height: 100%;
-      width: 0%;
-      background: lime;
-      transition: width 0.1s;
-    }
+  .bar {
+    height: 25px;
+    background: #222;
+    border: 2px solid #fff;
+    margin: 10px 0;
+    position: relative;
+  }
 
-    button {
-      padding: 15px 30px;
-      font-size: 18px;
-      background: #ff3c3c;
-      border: none;
-      color: white;
-      cursor: pointer;
-      border-radius: 8px;
-    }
+  .fill {
+    height: 100%;
+    width: 0%;
+    background: lime;
+  }
 
-    button:hover {
-      background: #ff1f1f;
-    }
-  </style>
+  .info {
+    font-size: 20px;
+    margin-top: 10px;
+  }
+
+  .gear {
+    font-size: 40px;
+    color: #00c3ff;
+  }
+</style>
 </head>
 <body>
 
-  <h1>🚗 Car Revving Game</h1>
-  <p>Hold SPACE or press the button to rev!</p>
+<h1>🚗 GTR Rev Simulator</h1>
+<p>SPACE = throttle | Q = downshift | E = upshift | N = neutral</p>
 
-  <div id="rpm-bar">
-    <div id="rpm-fill"></div>
-  </div>
+<div class="dash">
+  <div class="bar"><div id="rpmFill" class="fill"></div></div>
+  <div class="bar"><div id="speedFill" class="fill"></div></div>
+</div>
 
-  <button id="revBtn">REV ENGINE</button>
+<div class="info">RPM: <span id="rpmText">0</span></div>
+<div class="info">Speed: <span id="speedText">0</span> km/h</div>
+<div class="gear" id="gearText">N</div>
 
-  <!-- Sound (replace with your own if you want) -->
-  <audio id="engineSound" loop>
-    <source src="https://www.myinstants.com/media/sounds/car-engine.mp3" type="audio/mpeg">
-  </audio>
+<audio id="engineSound" loop>
+  <source src="https://www.myinstants.com/media/sounds/car-engine.mp3">
+</audio>
 
-  <script>
-    let rpm = 0;
-    let revving = false;
-    const maxRPM = 100;
+<script>
+let rpm = 0;
+let speed = 0;
+let gear = 0; // 0 = neutral
+let throttle = false;
 
-    const rpmFill = document.getElementById("rpm-fill");
-    const sound = document.getElementById("engineSound");
+const maxRPM = 9000;
+const gearRatios = [0, 2.5, 1.8, 1.3, 1.0, 0.8, 0.6];
 
-    function updateRPM() {
-      if (revving) {
-        rpm += 2;
-      } else {
-        rpm -= 1.5;
-      }
+const rpmFill = document.getElementById("rpmFill");
+const speedFill = document.getElementById("speedFill");
+const rpmText = document.getElementById("rpmText");
+const speedText = document.getElementById("speedText");
+const gearText = document.getElementById("gearText");
+const sound = document.getElementById("engineSound");
 
-      if (rpm < 0) rpm = 0;
-      if (rpm > maxRPM) rpm = maxRPM;
-
-      rpmFill.style.width = rpm + "%";
-
-      // Change color based on RPM
-      if (rpm < 40) rpmFill.style.background = "lime";
-      else if (rpm < 70) rpmFill.style.background = "orange";
-      else rpmFill.style.background = "red";
-
-      requestAnimationFrame(updateRPM);
+function update() {
+  if (gear === 0) {
+    // Neutral behavior
+    if (throttle) rpm += 200;
+    else rpm -= 150;
+    speed *= 0.98;
+  } else {
+    if (throttle) {
+      rpm += 150;
+      speed += gearRatios[gear] * 0.5;
+    } else {
+      rpm -= 120;
+      speed -= 0.3;
     }
 
-    updateRPM();
+    // Engine braking
+    rpm = speed * gearRatios[gear] * 80;
+  }
 
-    function startRev() {
-      revving = true;
-      sound.play();
-    }
+  if (rpm < 800) rpm = 800;
+  if (rpm > maxRPM) rpm = maxRPM;
 
-    function stopRev() {
-      revving = false;
-      sound.pause();
-      sound.currentTime = 0;
-    }
+  if (speed < 0) speed = 0;
 
-    // Button controls
-    document.getElementById("revBtn").addEventListener("mousedown", startRev);
-    document.getElementById("revBtn").addEventListener("mouseup", stopRev);
-    document.getElementById("revBtn").addEventListener("mouseleave", stopRev);
+  // UI updates
+  rpmFill.style.width = (rpm / maxRPM) * 100 + "%";
+  speedFill.style.width = Math.min(speed, 200) / 2 + "%";
 
-    // Keyboard controls
-    document.addEventListener("keydown", (e) => {
-      if (e.code === "Space") startRev();
-    });
+  rpmText.innerText = Math.floor(rpm);
+  speedText.innerText = Math.floor(speed);
 
-    document.addEventListener("keyup", (e) => {
-      if (e.code === "Space") stopRev();
-    });
-  </script>
+  gearText.innerText = gear === 0 ? "N" : gear;
+
+  // Color change
+  if (rpm < 4000) rpmFill.style.background = "lime";
+  else if (rpm < 7000) rpmFill.style.background = "orange";
+  else rpmFill.style.background = "red";
+
+  requestAnimationFrame(update);
+}
+
+update();
+
+// Controls
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space") {
+    throttle = true;
+    sound.play();
+  }
+
+  if (e.key.toLowerCase() === "e" && gear < 6) {
+    gear++;
+  }
+
+  if (e.key.toLowerCase() === "q" && gear > 0) {
+    gear--;
+  }
+
+  if (e.key.toLowerCase() === "n") {
+    gear = 0;
+  }
+});
+
+document.addEventListener("keyup", (e) => {
+  if (e.code === "Space") {
+    throttle = false;
+    sound.pause();
+    sound.currentTime = 0;
+  }
+});
+</script>
 
 </body>
 </html>
