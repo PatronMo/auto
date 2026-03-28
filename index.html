@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Car Revving Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      text-align: center;
+      padding-top: 50px;
+    }
+
+    h1 {
+      color: #ff3c3c;
+    }
+
+    #rpm-bar {
+      width: 300px;
+      height: 30px;
+      border: 2px solid white;
+      margin: 20px auto;
+      background: #333;
+      position: relative;
+    }
+
+    #rpm-fill {
+      height: 100%;
+      width: 0%;
+      background: lime;
+      transition: width 0.1s;
+    }
+
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      background: #ff3c3c;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+
+    button:hover {
+      background: #ff1f1f;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🚗 Car Revving Game</h1>
+  <p>Hold SPACE or press the button to rev!</p>
+
+  <div id="rpm-bar">
+    <div id="rpm-fill"></div>
+  </div>
+
+  <button id="revBtn">REV ENGINE</button>
+
+  <!-- Sound (replace with your own if you want) -->
+  <audio id="engineSound" loop>
+    <source src="https://www.myinstants.com/media/sounds/car-engine.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    let rpm = 0;
+    let revving = false;
+    const maxRPM = 100;
+
+    const rpmFill = document.getElementById("rpm-fill");
+    const sound = document.getElementById("engineSound");
+
+    function updateRPM() {
+      if (revving) {
+        rpm += 2;
+      } else {
+        rpm -= 1.5;
+      }
+
+      if (rpm < 0) rpm = 0;
+      if (rpm > maxRPM) rpm = maxRPM;
+
+      rpmFill.style.width = rpm + "%";
+
+      // Change color based on RPM
+      if (rpm < 40) rpmFill.style.background = "lime";
+      else if (rpm < 70) rpmFill.style.background = "orange";
+      else rpmFill.style.background = "red";
+
+      requestAnimationFrame(updateRPM);
+    }
+
+    updateRPM();
+
+    function startRev() {
+      revving = true;
+      sound.play();
+    }
+
+    function stopRev() {
+      revving = false;
+      sound.pause();
+      sound.currentTime = 0;
+    }
+
+    // Button controls
+    document.getElementById("revBtn").addEventListener("mousedown", startRev);
+    document.getElementById("revBtn").addEventListener("mouseup", stopRev);
+    document.getElementById("revBtn").addEventListener("mouseleave", stopRev);
+
+    // Keyboard controls
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") startRev();
+    });
+
+    document.addEventListener("keyup", (e) => {
+      if (e.code === "Space") stopRev();
+    });
+  </script>
+
+</body>
+</html>
